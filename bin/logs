@@ -1,0 +1,64 @@
+#!/bin/bash
+
+pushd () {
+  command pushd "$@" > /dev/null
+}
+
+popd () {
+  command popd "$@" > /dev/null
+}
+
+usage () {
+  echo "$(basename $0) [-h] [-w elastic,confluent,...] [-f]"
+  echo -e "  -w\t\tlist of comma separated apps"
+  echo -e "  -f\t\tfollow"
+  echo -e "  -h\t\tprints this help"
+}
+
+PARENTDIR="$(dirname $(dirname "$0"))"
+pushd $PARENTDIR
+
+OPTIONS=""
+
+if [[ $# > 0 ]]; then
+  while getopts ":w:hf" opt 2>/dev/null
+  do
+    case ${opt} in
+      w)
+        APPS=($(echo "${OPTARG}" | tr "," "\n"))
+        for APP in "${APPS[@]}"; do
+          FILE="docker-compose.${APP}.yml"
+          if [[ -f "$FILE" ]]; then
+            FILES="${FILES} -f ${FILE}"
+          else
+            echo "docker-compose file for ${APP} doesn't exist. Ignoring..."
+          fi
+        done
+        ;;
+      f)
+        OPTIONS="${OPTIONS} -f"
+        break
+        ;;
+      h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "Invalid argument"
+        usage
+        exit 1
+        ;;
+    esac
+  done
+fi
+
+if [ -z "$FILES" ]; then
+  FILES="$(ls -1 docker-compose*yml |awk '{printf "-f %s ", $0}')"
+fi
+
+SERVICES=`docker-compose ${FILES} config --services | tr '\n' ' '`
+
+echo "Show logs of $SERVICES"
+docker-compose ${FILES} logs ${SERVICES} ${OPTIONS}
+
+popd

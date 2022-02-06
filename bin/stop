@@ -1,0 +1,63 @@
+#!/bin/bash
+
+pushd () {
+  command pushd "$@" > /dev/null
+}
+
+popd () {
+  command popd "$@" > /dev/null
+}
+
+
+usage () {
+  echo "$(basename $0) [-h] [-w] [-v]"
+  echo -e "  -w\t\tlist of comma separated apps"
+  echo -e "  -v\t\tremove volumes"
+  echo -e "  -h\t\tprints this help"
+}
+
+PARENTDIR="$(dirname $(dirname "$0"))"
+pushd $PARENTDIR
+
+FILES="$(ls -1 docker-compose*yml |awk '{printf "-f %s ", $0}')"
+
+if [[ $# > 0 ]]; then
+  while getopts ":w:hv" opt 2>/dev/null
+  do
+    case ${opt} in
+      w)
+        APPS=($(echo "${OPTARG}" | tr "," "\n"))
+        for APP in "${APPS[@]}"; do
+          FILE="docker-compose.${APP}.yml"
+          if [[ -f "$FILE" ]]; then
+            FILES="${FILES} -f ${FILE}"
+          else
+            echo "docker-compose file for ${APP} doesn't exist. Ignoring..."
+          fi
+        done
+        ;;
+      v)
+        OPTIONS="${OPTIONS} -v"
+        break
+        ;;
+      h)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "Invalid argument"
+        usage
+        exit 1
+        ;;
+    esac
+  done
+fi
+
+if [ -z "$FILES" ]; then
+  FILES="$(ls -1 docker-compose*yml |awk '{printf "-f %s ", $0}')"
+  echo "Stopping all applications..."
+fi
+
+docker-compose ${FILES} down ${OPTIONS}
+
+popd

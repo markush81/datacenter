@@ -1,0 +1,61 @@
+#!/bin/bash
+
+pushd () {
+  command pushd "$@" > /dev/null
+}
+
+popd () {
+  command popd "$@" > /dev/null
+}
+
+
+usage () {
+  echo "$(basename $0) [-h] [-w elastic,confluent,...] [-a]"
+  echo -e "  -w\t\tlist of comma separated apps"
+  echo -e "  -a\t\tstart all"
+  echo -e "  -h\t\tprints this help"
+}
+
+PARENTDIR="$(dirname $(dirname "$0"))"
+pushd $PARENTDIR
+
+if [[ $# > 0 ]]; then
+  while getopts ":aw:h" opt 2>/dev/null
+  do
+    case ${opt} in
+      w)
+        APPS=($(echo "${OPTARG}" | tr "," "\n"))
+        for APP in "${APPS[@]}"; do
+          FILE="docker-compose.${APP}.yml"
+          if [[ -f "$FILE" ]]; then
+            OPTIONS="${OPTIONS} -f ${FILE}"
+          else
+            echo "docker-compose file for ${APP} doesn't exist. Ignoring..."
+          fi
+        done
+        ;;
+      a)
+        OPTIONS="$(ls -1 docker-compose*yml |awk '{printf "-f %s ", $0}')"
+        echo "Starting all applications..."
+        break
+        ;;
+      h)
+        usage
+        popd
+        exit 0
+        ;;
+      *)
+        echo "Invalid argument"
+        usage
+        popd
+        exit 1
+        ;;
+    esac
+  done
+  docker-compose ${OPTIONS} up -d
+else
+  echo "Specify at least one app to start ..."
+  usage
+fi
+
+popd

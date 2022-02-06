@@ -37,7 +37,6 @@ services:
         -E output.elasticsearch.hosts=["http://elasticsearch:9200"]
     container_name: apm
     networks:
-      - frontend
       - oam
     healthcheck:
       interval: 10s
@@ -129,7 +128,7 @@ services:
       co.elastic.logs/fileset: server
       co.elastic.metrics/raw: "[{\"module\":\"elasticsearch\",\"hosts\":\"http://elasticsearch:9200\",\"period\":\"10s\",\"xpack.enabled\":\"true\",\"username\":\"elastic\",\"password\":\"$ELASTIC__INITIAL_PASSWORD\"}]"
     environment:
-      - cluster.name=datacenter-oam
+      - cluster.name=datacenter
       - xpack.license.self_generated.type=trial
       - bootstrap.memory_lock=true
       - cluster.routing.allocation.disk.threshold_enabled=false
@@ -183,7 +182,6 @@ services:
       - 5601:5601
     container_name: kibana
     networks:
-      - frontend
       - oam
     healthcheck:
       interval: 10s
@@ -191,7 +189,6 @@ services:
       test: curl -u kibana_system:$$ELASTICSEARCH_PASSWORD --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
 
 networks:
-  frontend:
   oam:
 
 volumes:
