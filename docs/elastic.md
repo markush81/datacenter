@@ -8,7 +8,6 @@ Elastic stack consists of
 - Kibana
 - Elastic Agent (Fleet Server and APM Integration)
 
-
 References: [Elastic Stack Documentation](https://www.elastic.co/guide/index.html)
 
 ## Security

@@ -3,7 +3,7 @@ version: "3.7"
 
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.0.1
+    image: confluentinc/cp-zookeeper:${CONFLUENT_VERSION}
     restart: unless-stopped
     mem_limit: '768M'
     environment:
@@ -20,7 +20,7 @@ services:
       test: cub zk-ready localhost:2181 40
 
   broker:
-    image: confluentinc/cp-server:7.0.1
+    image: confluentinc/cp-server:${CONFLUENT_VERSION}
     restart: unless-stopped
     mem_limit: '1.5G'
     depends_on:
@@ -59,7 +59,7 @@ services:
       test: cub kafka-ready 1 40 -b localhost:9092
 
   control-center:
-    image: confluentinc/cp-enterprise-control-center:7.0.1
+    image: confluentinc/cp-enterprise-control-center:${CONFLUENT_VERSION}
     restart: unless-stopped
     depends_on:
       broker:
@@ -86,7 +86,7 @@ services:
       test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:9021/
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:7.0.1
+    image: confluentinc/cp-schema-registry:${CONFLUENT_VERSION}
     restart: unless-stopped
     mem_limit: '768M'
     depends_on:

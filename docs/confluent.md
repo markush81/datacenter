@@ -7,7 +7,6 @@ Confluent consists of
 - Confluent Controlcenter
 - Schema Registry
 
-
 References: [Confluent Documentation](https://docs.confluent.io/platform/current/overview.html)
 
 ## Connections
