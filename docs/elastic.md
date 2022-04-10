@@ -1,14 +1,12 @@
 # Elastic Stack
 
-`docker-compose -f docker-compose.elastic.yml up`
-
 Elastic stack consists of
 
 - Elasticsearch
 - Metricbeat for Stack Monitoring
 - Filebeat
 - Kibana
-- APM Server (:warning: not yet Elastic Agent)
+- Elastic Agent (Fleet Server and APM Integration)
 
 
 References: [Elastic Stack Documentation](https://www.elastic.co/guide/index.html)
@@ -22,7 +20,7 @@ Default password is `secret`.
 ## Connections
 
 - [Kibana - http://localhost:5601](http://localhost:5601)
-- [APM - http://localhost:8200](http://localhost:8200)
+- [Elastic Agent (APM Integration) - http://localhost:8200](http://localhost:8200)
 - [Elasticsearch - http://localhost:9200](http://localhost:9200)
 
 
@@ -36,6 +34,8 @@ Set `ELASTIC__LOG_FILES` in `.env` to your log file location (`*.log`) or adapt 
 ## Screenshots
 
 ![Elastic Stack Monitoring](images/elastic_stack_monitoring.png)
+
+![Elastic Stack Monitoring](images/elastic_stack_fleet_apm.png)
 
 ![Elastic Stack Logs](images/elastic_stack_logs.png)
 

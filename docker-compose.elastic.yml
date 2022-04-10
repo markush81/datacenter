@@ -2,49 +2,55 @@
 version: '3.7'
 
 services:
-  apm-server:
-    image: docker.elastic.co/apm/apm-server:7.17.0
-    restart: unless-stopped
-    mem_limit: 512M
-    labels:
-      co.elastic.logs/enabled: false
-      co.elastic.metrics/raw: "[{\"module\":\"beat\",\"hosts\":\"apm-server:5066\",\"period\":\"10s\",\"xpack.enabled\":\"true\"}]"
+  setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC__STACK_VERSION}
+    command: >
+      bash -c '
+        echo "Waiting for Elasticsearch availability";
+        until curl -s -u elastic:${ELASTIC__INITIAL_PASSWORD} http://elasticsearch:9200/_cluster/health | grep -vq '"status":"red"'; do sleep 30; done;
+        echo "Setting kibana_system password";
+        until curl -s -X POST -u elastic:${ELASTIC__INITIAL_PASSWORD} -H "Content-Type: application/json" http://elasticsearch:9200/_security/user/kibana_system/_password -d "{\"password\":\"${ELASTIC__INITIAL_PASSWORD}\"}" | grep -q "^{}"; do sleep 10; done;
+        echo "All done!";
+      '
+    container_name: elastic_setup
+    volumes:
+      - setup:/usr/share/setup
+    networks:
+      - oam
+
+  fleet-server-apm:
+    image: docker.elastic.co/beats/elastic-agent:${ELASTIC__STACK_VERSION}
     depends_on:
       elasticsearch:
         condition: service_healthy
       kibana:
         condition: service_healthy
-    cap_add: ["CHOWN", "DAC_OVERRIDE", "SETGID", "SETUID"]
-    cap_drop: ["ALL"]
+    restart: unless-stopped
+    environment:
+      FLEET_SERVER_ENABLE: "1"
+      FLEET_SERVER_POLICY_ID: fleet-server-apm
+      FLEET_SERVER_ELASTICSEARCH_HOST: http://elasticsearch:9200
+      FLEET_SERVER_ELASTICSEARCH_USERNAME: elastic
+      FLEET_SERVER_ELASTICSEARCH_PASSWORD: $ELASTIC__INITIAL_PASSWORD
+      FLEET_SERVER_INSECURE_HTTP: "true"
+      FLEET_URL: https://fleet-server:8220
+      KIBANA_FLEET_SETUP: "true"
+      KIBANA_HOST: http://kibana:5601
+      KIBANA_USERNAME: elastic
+      KIBANA_PASSWORD: $ELASTIC__INITIAL_PASSWORD
+    container_name: fleet-server
     ports:
+      - 8220:8220
       - 8200:8200
-    command: >
-      apm-server -e
-        -E setup.kibana.enabled=true
-        -E setup.kibana.host=http://kibana:5601
-        -E setup.template.enabled=true
-        -E setup.template.settings.index.number_of_replicas=0
-        -E http.enabled=true
-        -E http.host=0.0.0.0
-        -E monitoring.enabled=false
-        -E apm-server.rum.enabled=true
-        -E apm-server.kibana.enabled=true
-        -E apm-server.kibana.host=kibana:5601
-        -E apm-server.kibana.username=elastic
-        -E apm-server.kibana.password=$ELASTIC__INITIAL_PASSWORD
-        -E output.elasticsearch.username=elastic
-        -E output.elasticsearch.password=$ELASTIC__INITIAL_PASSWORD
-        -E output.elasticsearch.hosts=["http://elasticsearch:9200"]
-    container_name: apm
     networks:
       - oam
     healthcheck:
       interval: 10s
       retries: 12
-      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5066/
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8220/api/status && curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8200
 
   filebeat:
-    image: docker.elastic.co/beats/filebeat:7.17.0
+    image: docker.elastic.co/beats/filebeat:${ELASTIC__STACK_VERSION}
     restart: unless-stopped
     mem_limit: 256M
     labels:
@@ -82,7 +88,7 @@ services:
       test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5066/
 
   metricbeat:
-    image: docker.elastic.co/beats/metricbeat:7.17.0
+    image: docker.elastic.co/beats/metricbeat:${ELASTIC__STACK_VERSION}
     restart: unless-stopped
     mem_limit: 256M
     labels:
@@ -119,7 +125,7 @@ services:
       test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5066/
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC__STACK_VERSION}
     restart: unless-stopped
     mem_limit: 5G
     labels:
@@ -127,6 +133,9 @@ services:
       co.elastic.logs/module: elasticsearch
       co.elastic.logs/fileset: server
       co.elastic.metrics/raw: "[{\"module\":\"elasticsearch\",\"hosts\":\"http://elasticsearch:9200\",\"period\":\"10s\",\"xpack.enabled\":\"true\",\"username\":\"elastic\",\"password\":\"$ELASTIC__INITIAL_PASSWORD\"}]"
+    depends_on:
+      setup:
+        condition: service_started
     environment:
       - cluster.name=datacenter
       - xpack.license.self_generated.type=trial
@@ -144,7 +153,6 @@ services:
         hard: -1
         soft: -1
     volumes:
-      - ./elastic/elasticsearch/healthcheck.sh:/healthcheck.sh:ro
       - esdata:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
@@ -152,12 +160,12 @@ services:
     networks:
       - oam
     healthcheck:
+      test: curl -u elastic:$$ELASTIC_PASSWORD -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
       interval: 20s
       retries: 10
-      test: /healthcheck.sh
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.17.0
+    image: docker.elastic.co/kibana/kibana:${ELASTIC__STACK_VERSION}
     restart: unless-stopped
     mem_limit: 1G
     labels:
@@ -178,6 +186,11 @@ services:
       XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: $ELASTIC__ENCRYPTION_KEY
       XPACK_SECURITY_ENCRYPTIONKEY: $ELASTIC__ENCRYPTION_KEY
       XPACK_REPORTING_ENCRYPTIONKEY: $ELASTIC__ENCRYPTION_KEY
+      XPACK_FLEET_AGENTS_FLEET_SERVER_HOSTS: '["https://fleet-server:8220"]'
+      XPACK_FLEET_AGENTS_ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    volumes:
+      - ./elastic/kibana.yml:/usr/share/kibana/config/kibana.yml
+      - kibanadata:/usr/share/kibana/data
     ports:
       - 5601:5601
     container_name: kibana
@@ -192,5 +205,9 @@ networks:
   oam:
 
 volumes:
+  setup:
+    driver: local
   esdata:
+    driver: local
+  kibanadata:
     driver: local
