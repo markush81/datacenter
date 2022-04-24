@@ -1,63 +1,76 @@
 #!/bin/bash
+set -e
+set -u
+set -o pipefail
+IFS=$'\n\t'
 
-pushd () {
-  command pushd "$@" > /dev/null
-}
+. "$(dirname "$0")/common.sh"
 
-popd () {
-  command popd "$@" > /dev/null
-}
-
-
-usage () {
-  echo "$(basename $0) [-h] [-w] [-v]"
+function usage() {
+  echo "$(basename "$0") [-h] [-w] [-v]"
   echo -e "  -w\t\tlist of comma separated apps"
   echo -e "  -v\t\tremove volumes"
   echo -e "  -h\t\tprints this help"
 }
 
-PARENTDIR="$(dirname $(dirname "$0"))"
-pushd $PARENTDIR
+k8s() {
+  kind delete cluster --name datacenter-k8s
+}
 
-FILES="$(ls -1 docker-compose*yml |awk '{printf "-f %s ", $0}')"
+declare -a COMPOSE_FILES
+declare -a OPTIONS
+declare -i KUBERNETES_ENABLED=0
 
-if [[ $# > 0 ]]; then
-  while getopts ":w:hv" opt 2>/dev/null
-  do
+if [[ $# -gt 0 ]]; then
+  while getopts ":w:hv" opt 2>/dev/null; do
     case ${opt} in
-      w)
-        APPS=($(echo "${OPTARG}" | tr "," "\n"))
-        for APP in "${APPS[@]}"; do
+    w)
+      APPS=($(echo "$OPTARG" | tr "," "\n"))
+      for APP in "${APPS[@]}"; do
+        if [[ "$APP" == "k8s" ]]; then
+          KUBERNETES_ENABLED=1
+        else
           FILE="docker-compose.${APP}.yml"
           if [[ -f "$FILE" ]]; then
-            FILES="${FILES} -f ${FILE}"
+            COMPOSE_FILES+=(-f "${FILE}")
+            info "... adding $FILE"
           else
-            echo "docker-compose file for ${APP} doesn't exist. Ignoring..."
+            warning "docker-compose file for $APP doesn't exist. Ignoring..."
           fi
-        done
-        ;;
-      v)
-        OPTIONS="${OPTIONS} -v"
-        break
-        ;;
-      h)
-        usage
-        exit 0
-        ;;
-      *)
-        echo "Invalid argument"
-        usage
-        exit 1
-        ;;
+        fi
+      done
+      ;;
+    v)
+      OPTIONS+=(-v)
+      break
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    *)
+      failure "Invalid argument"
+      usage
+      exit 1
+      ;;
     esac
   done
 fi
 
-if [ -z "$FILES" ]; then
-  FILES="$(ls -1 docker-compose*yml |awk '{printf "-f %s ", $0}')"
-  echo "Stopping all applications..."
+if [ "${COMPOSE_FILES[*]:-}" == '' ]; then
+  FILES=($(ls docker-compose*yml))
+  for file in "${FILES[@]}"; do
+    COMPOSE_FILES+=(-f "${file}")
+  done
+  KUBERNETES_ENABLED=1
+  info "Stopping all applications..."
 fi
 
-docker-compose ${FILES} down ${OPTIONS}
+if [[ $KUBERNETES_ENABLED ]]; then
+  ensure_commands kind
+  k8s
+fi
 
-popd
+ensure_commands docker-compose
+
+docker-compose "${COMPOSE_FILES[@]}" down "${OPTIONS[@]:-}"

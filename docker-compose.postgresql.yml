@@ -1,0 +1,29 @@
+---
+version: '3.7'
+
+services:
+  postgresql:
+    image: postgres:${POSTGRESQL__VERSION}
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: $POSTGRESQL__PASSWORD
+    volumes:
+      - postgresdata:/var/lib/postgresql/data
+      - ./postgresql/init:/docker-entrypoint-initdb.d
+    ports:
+      - 5432:5432
+    container_name: postgresql
+    networks:
+      - oam
+      - backend
+    healthcheck:
+      interval: 10s
+      retries: 20
+      test: pg_isready
+
+networks:
+  backend:
+  oam:
+
+volumes:
+  postgresdata:

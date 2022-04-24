@@ -36,3 +36,11 @@ logs [-h] [-w elastic,confluent,...] [-f]
 ## Confluent
 
 [Confluent](docs/confluent.md)
+
+## Postgresql
+
+[Postgresql](docs/postgresql.md)
+
+## Kubernetes
+
+[Kubernetes](docs/k8s.md)

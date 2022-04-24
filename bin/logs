@@ -1,64 +1,60 @@
 #!/bin/bash
+set -e
+set -u
+set -o pipefail
+IFS=$'\n\t'
 
-pushd () {
-  command pushd "$@" > /dev/null
-}
+. "$(dirname "$0")/common.sh"
 
-popd () {
-  command popd "$@" > /dev/null
-}
-
-usage () {
-  echo "$(basename $0) [-h] [-w elastic,confluent,...] [-f]"
+function usage() {
+  echo "$(basename "$0") [-h] [-w elastic,confluent,...] [-f]"
   echo -e "  -w\t\tlist of comma separated apps"
   echo -e "  -f\t\tfollow"
   echo -e "  -h\t\tprints this help"
 }
 
-PARENTDIR="$(dirname $(dirname "$0"))"
-pushd $PARENTDIR
+declare -a COMPOSE_FILES
+declare -a OPTIONS
 
-OPTIONS=""
-
-if [[ $# > 0 ]]; then
-  while getopts ":w:hf" opt 2>/dev/null
-  do
+if [[ $# -gt 0 ]]; then
+  while getopts ":w:hf" opt 2>/dev/null; do
     case ${opt} in
-      w)
-        APPS=($(echo "${OPTARG}" | tr "," "\n"))
-        for APP in "${APPS[@]}"; do
-          FILE="docker-compose.${APP}.yml"
-          if [[ -f "$FILE" ]]; then
-            FILES="${FILES} -f ${FILE}"
-          else
-            echo "docker-compose file for ${APP} doesn't exist. Ignoring..."
-          fi
-        done
-        ;;
-      f)
-        OPTIONS="${OPTIONS} -f"
-        break
-        ;;
-      h)
-        usage
-        exit 0
-        ;;
-      *)
-        echo "Invalid argument"
-        usage
-        exit 1
-        ;;
+    w)
+      APPS=($(echo "${OPTARG}" | tr "," "\n"))
+      for APP in "${APPS[@]}"; do
+        FILE="docker-compose.${APP}.yml"
+        if [[ -f "$FILE" ]]; then
+          COMPOSE_FILES+=(-f "${FILE}")
+        else
+          warning "docker-compose file for ${APP} doesn't exist. Ignoring..."
+        fi
+      done
+      ;;
+    f)
+      OPTIONS+=("-f")
+      break
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Invalid argument"
+      usage
+      exit 1
+      ;;
     esac
   done
 fi
 
-if [ -z "$FILES" ]; then
-  FILES="$(ls -1 docker-compose*yml |awk '{printf "-f %s ", $0}')"
+if [ "${COMPOSE_FILES[*]:-}" == '' ]; then
+  FILES=($(ls docker-compose*yml))
+  for file in "${FILES[@]}"; do
+    COMPOSE_FILES+=(-f "${file}")
+  done
 fi
 
-SERVICES=`docker-compose ${FILES} config --services | tr '\n' ' '`
+SERVICES=$(docker-compose "${COMPOSE_FILES[@]}" config --services | tr '\n' ' ')
 
-echo "Show logs of $SERVICES"
-docker-compose ${FILES} logs ${SERVICES} ${OPTIONS}
-
-popd
+info "Show logs of $SERVICES"
+docker-compose "${COMPOSE_FILES[@]}" logs "${SERVICES}" "${OPTIONS[@]:-}"

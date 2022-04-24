@@ -1,61 +1,101 @@
 #!/bin/bash
+set -e
+set -u
+set -o pipefail
+IFS=$'\n\t'
 
-pushd () {
-  command pushd "$@" > /dev/null
-}
+. "$(dirname "$0")/common.sh"
 
-popd () {
-  command popd "$@" > /dev/null
-}
-
-
-usage () {
-  echo "$(basename $0) [-h] [-w elastic,confluent,...] [-a]"
+function usage() {
+  echo "$(basename "$0") [-h] [-w elastic,confluent,...] [-a]"
   echo -e "  -w\t\tlist of comma separated apps"
   echo -e "  -a\t\tstart all"
   echo -e "  -h\t\tprints this help"
 }
 
-PARENTDIR="$(dirname $(dirname "$0"))"
-pushd $PARENTDIR
+KIND_CLUSTERNAME="datacenter-k8s"
 
-if [[ $# > 0 ]]; then
-  while getopts ":aw:h" opt 2>/dev/null
-  do
+k8s() {
+  CLUSTER_EXISTS=$(kind get clusters -q | grep $KIND_CLUSTERNAME || true)
+  if [[ "${CLUSTER_EXISTS}" != "${KIND_CLUSTERNAME}" ]]; then
+    kind create cluster --config=k8s/kubernetes.yml --name ${KIND_CLUSTERNAME}
+    info "Apply ingress-nginx"
+    # kubectl --context "kind-${KIND_CLUSTERNAME}" --namespace ingress-nginx delete job ingress-nginx-admission-create || true
+    # kubectl --context "kind-${KIND_CLUSTERNAME}" --namespace ingress-nginx delete job ingress-nginx-admission-patch || true
+    kubectl --context "kind-${KIND_CLUSTERNAME}" apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+  fi
+}
+
+declare -a COMPOSE_FILES
+declare -i KUBERNETES_ENABLED=0
+
+if [[ $# -gt 0 ]]; then
+  while getopts ":aw:h" opt 2>/dev/null; do
     case ${opt} in
-      w)
-        APPS=($(echo "${OPTARG}" | tr "," "\n"))
-        for APP in "${APPS[@]}"; do
+    w)
+      APPS=($(echo "${OPTARG}" | tr "," "\n"))
+      for APP in "${APPS[@]}"; do
+        if [[ "$APP" == "k8s" ]]; then
+          KUBERNETES_ENABLED=1
+        else
           FILE="docker-compose.${APP}.yml"
           if [[ -f "$FILE" ]]; then
-            OPTIONS="${OPTIONS} -f ${FILE}"
+            COMPOSE_FILES+=(-f "${FILE}")
+            info "... adding ${FILE}"
           else
-            echo "docker-compose file for ${APP} doesn't exist. Ignoring..."
+            warning "docker-compose file for ${APP} doesn't exist. Ignoring..."
           fi
-        done
-        ;;
-      a)
-        OPTIONS="$(ls -1 docker-compose*yml |awk '{printf "-f %s ", $0}')"
-        echo "Starting all applications..."
-        break
-        ;;
-      h)
-        usage
-        popd
-        exit 0
-        ;;
-      *)
-        echo "Invalid argument"
-        usage
-        popd
-        exit 1
-        ;;
+        fi
+      done
+      ;;
+    a)
+      FILES=($(ls docker-compose*yml))
+      for file in "${FILES[@]}"; do
+        COMPOSE_FILES+=(-f "${file}")
+      done
+      info "Starting all applications..."
+      break
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    *)
+      failure "Invalid argument"
+      usage
+      exit 1
+      ;;
     esac
   done
-  docker-compose ${OPTIONS} up -d
+
+  if [ "${COMPOSE_FILES[*]:-}" != '' ]; then
+    ensure_commands docker-compose
+
+    docker-compose "${COMPOSE_FILES[@]}" up -d
+  fi
+  if [[ $KUBERNETES_ENABLED ]]; then
+    ensure_commands docker kind kubectl
+
+    k8s
+
+    NETWORKS=($(docker network ls -f name=datacenter --format='{{.Name}}'))
+    CONTAINERS=($(kind get nodes -q --name $KIND_CLUSTERNAME))
+    if [[ "${NETWORKS[*]:-}" != '' && "${CONTAINERS[*]:-}" != '' ]]; then
+      for network in "${NETWORKS[@]}"; do
+        for container in "${CONTAINERS[@]}"; do
+          info "Connecting $container to $network ..."
+          CONNECTED=($(docker network inspect "$network" --format='{{range .Containers}}{{println .Name}}{{end}}'))
+          if [[ ! "${CONNECTED[*]}" =~ (^|[[:space:]])${container}($|[[:space:]]) ]]; then
+            docker network connect "$network" "$container"
+            success "... done."
+          else
+            warning "... already connected."
+          fi
+        done
+      done
+    fi
+  fi
 else
   echo "Specify at least one app to start ..."
   usage
 fi
-
-popd
