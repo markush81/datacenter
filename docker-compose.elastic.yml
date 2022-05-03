@@ -147,7 +147,7 @@ services:
       - xpack.monitoring.collection.enabled=true
       - xpack.monitoring.elasticsearch.collection.enabled=false
       - ELASTIC_PASSWORD=$ELASTIC__INITIAL_PASSWORD
-      - ES_JAVA_OPTS=-XX:UseAVX=2 -Xms4g -Xmx4g
+      - ES_JAVA_OPTS=-Xms4g -Xmx4g
     ulimits:
       memlock:
         hard: -1
