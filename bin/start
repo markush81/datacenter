@@ -68,12 +68,12 @@ if [[ $# -gt 0 ]]; then
     esac
   done
 
-  if [ "${COMPOSE_FILES[*]:-}" != '' ]; then
+ if [ "${COMPOSE_FILES[*]:-}" != '' ]; then
     ensure_commands docker-compose
 
     docker-compose "${COMPOSE_FILES[@]}" up -d
   fi
-  if [[ $KUBERNETES_ENABLED ]]; then
+  if [[ $KUBERNETES_ENABLED -eq 1 ]]; then
     ensure_commands docker kind kubectl
 
     k8s
