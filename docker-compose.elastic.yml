@@ -26,6 +26,7 @@ services:
       kibana:
         condition: service_healthy
     restart: unless-stopped
+    mem_limit: 512M
     environment:
       FLEET_SERVER_ENABLE: "1"
       FLEET_SERVER_POLICY_ID: fleet-server-apm
