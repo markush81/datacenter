@@ -2,9 +2,9 @@ server.host: 0.0.0.0
 
 xpack.fleet.packages:
   - name: fleet_server
-    version: 1.1.0
+    version: latest
   - name: apm
-    version: 8.1.2
+    version: latest
 xpack.fleet.agentPolicies:
   - name: Fleet Server (APM)
     id: fleet-server-apm
