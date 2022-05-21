@@ -57,4 +57,4 @@ fi
 SERVICES=$(docker-compose "${COMPOSE_FILES[@]}" config --services | tr '\n' ' ')
 
 info "Show logs of $SERVICES"
-docker-compose "${COMPOSE_FILES[@]}" logs "${OPTIONS[@]:-}"
+docker-compose "${COMPOSE_FILES[@]}" logs ${OPTIONS[@]:-}
