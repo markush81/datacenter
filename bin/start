@@ -22,7 +22,7 @@ k8s() {
     info "Apply ingress-nginx"
     # kubectl --context "kind-${KIND_CLUSTERNAME}" --namespace ingress-nginx delete job ingress-nginx-admission-create || true
     # kubectl --context "kind-${KIND_CLUSTERNAME}" --namespace ingress-nginx delete job ingress-nginx-admission-patch || true
-    kubectl --context "kind-${KIND_CLUSTERNAME}" apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+    kubectl --context "kind-${KIND_CLUSTERNAME}" apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.1/deploy/static/provider/kind/deploy.yaml
   fi
 }
 
@@ -86,7 +86,7 @@ if [[ $# -gt 0 ]]; then
         for container in "${CONTAINERS[@]}"; do
           info "Connecting $container to $network ..."
           CONNECTED=($(docker network inspect "$network" --format='{{range .Containers}}{{println .Name}}{{end}}'))
-          if [[ ! "${CONNECTED[*]}" =~ (^|[[:space:]])${container}($|[[:space:]]) ]]; then
+          if [[ ! "${CONNECTED[*]:-}" =~ (^|[[:space:]])${container}($|[[:space:]]) ]]; then
             docker network connect "$network" "$container"
             success "... done."
           else
