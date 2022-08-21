@@ -1,0 +1,53 @@
+---
+version: '3.7'
+
+services:
+  prometheus:
+    image: prom/prometheus:${GRAFANA__PROMETHEUS_VERSION}
+    restart: unless-stopped
+    mem_limit: 1G
+    ports:
+      - 9090:9090
+    container_name: prometheus
+    environment: []
+    networks:
+      - oam
+    volumes:
+      - promdata:/prometheus
+      - ./grafana/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    healthcheck:
+      interval: 5s
+      retries: 20
+      test: wget -O- -q http://localhost:9090/api/v1/status/runtimeinfo | grep -q '"status":"success"'
+
+  grafana:
+    image: grafana/grafana-oss:${GRAFANA__GRAFANA_VERSION}
+    restart: unless-stopped
+    mem_limit: 512MB
+    depends_on:
+      prometheus:
+        condition: service_healthy    
+    ports:
+      - 3000:3000
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA__INITIAL_PASSWORD}
+    networks:
+      - oam
+    volumes:
+      - grafanadata:/var/lib/grafana
+      - ./grafana/grafana/provisioning/:/etc/grafana/provisioning/
+    healthcheck:
+      interval: 5s
+      retries: 20
+      test: curl -u admin:$$GRAFANA__PROMETHEUS_VERSION --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:3000/api/heatlh
+
+networks:
+  oam:
+
+volumes:
+  grafanadata:
+    driver: local
+  promdata:
+    driver: local
