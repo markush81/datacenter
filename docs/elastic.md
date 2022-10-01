@@ -12,7 +12,7 @@ References: [Elastic Stack Documentation](https://www.elastic.co/guide/index.htm
 
 ## Security
 
-Set password for `elastic` superuser and encrypting kyes in `.env`.
+Set password for `elastic` superuser and encrypting keys in `.env`.
 
 Default password is `secret`.
 
