@@ -26,3 +26,4 @@ xpack.fleet.agentPolicies:
             vars:
               - name: host
                 value: "0.0.0.0:8200"
+telemetry.optIn: false
