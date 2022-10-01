@@ -1,0 +1,40 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+distributor:
+  receivers:                
+    otlp:
+      protocols:
+        grpc:
+
+ingester:
+  trace_idle_period: 10s    
+  max_block_duration: 5m     
+
+metrics_generator_enabled: true
+
+metrics_generator:
+  storage:
+    path: /tmp/tempo/metrics
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+
+compactor:
+  compaction:
+    compaction_window: 1h     
+    max_compaction_objects: 1000000
+    block_retention: 1h
+    compacted_block_retention: 10m
+
+storage:
+  trace:
+    backend: local                 
+    wal:
+      path: /tmp/tempo/wal         
+    local:
+      path: /tmp/tempo/blocks
+    pool:
+      max_workers: 100   
+      queue_depth: 10000

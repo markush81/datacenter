@@ -44,3 +44,7 @@ logs [-h] [-w elastic,confluent,...] [-f]
 ## Kubernetes
 
 [Kubernetes](docs/k8s.md)
+
+## Grafana Stack
+
+[Grafana](docs/grafana.md)

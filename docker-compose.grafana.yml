@@ -4,8 +4,10 @@ version: '3.7'
 services:
   prometheus:
     image: prom/prometheus:${GRAFANA__PROMETHEUS_VERSION}
+    command: >
+      --enable-feature=remote-write-receiver
     restart: unless-stopped
-    mem_limit: 1G
+    mem_limit: 512MB
     ports:
       - 9090:9090
     container_name: prometheus
@@ -14,7 +16,7 @@ services:
       - oam
     volumes:
       - promdata:/prometheus
-      - ./grafana/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./grafana/prometheus/prometheus.yml:/prometheus/prometheus.yml
     healthcheck:
       interval: 5s
       retries: 20
@@ -25,8 +27,7 @@ services:
     restart: unless-stopped
     mem_limit: 512MB
     depends_on:
-      prometheus:
-        condition: service_healthy    
+      - otelcollector
     ports:
       - 3000:3000
     container_name: grafana
@@ -43,6 +44,57 @@ services:
       retries: 20
       test: curl -u admin:$$GRAFANA__PROMETHEUS_VERSION --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:3000/api/heatlh
 
+  loki:
+    image: grafana/loki:${GRAFANA__LOKI_VERSION}
+    command: -config.file=/etc/loki/config.yml
+    restart: unless-stopped
+    mem_limit: 512MB
+    container_name: loki
+    networks:
+      - oam
+    volumes:
+      - lokidata:/loki
+      - ./grafana/loki:/etc/loki     
+    healthcheck:
+      interval: 5s
+      retries: 20
+      test: wget -O- -q http://localhost:3100/ready | grep -q 'ready'
+
+  tempo:
+    image: grafana/tempo:${GRAFANA__TEMPO_VERSION}
+    command: -config.file=/etc/tempo/config.yml
+    restart: unless-stopped
+    mem_limit: 512MB
+    container_name: tempo
+    networks:
+      - oam
+    volumes:
+      - tempodata:/tmp/tempo
+      - ./grafana/tempo:/etc/tempo     
+    healthcheck:
+      interval: 5s
+      retries: 20
+      test: wget -O- -q http://localhost:3100/ready | grep -q 'ready'
+
+  otelcollector:
+    image: otel/opentelemetry-collector-contrib:${GRAFANA__OTEL_COLLECTOR_VERSION}
+    restart: unless-stopped
+    mem_limit: 512MB
+    depends_on:
+      prometheus:
+        condition: service_healthy    
+      loki:
+        condition: service_healthy  
+      tempo:
+        condition: service_healthy  
+    ports:
+      - 4317:4317
+    container_name: otelcollector
+    networks:
+      - oam
+    volumes:
+      - ./grafana/otelcol:/etc/otelcol-contrib   
+
 networks:
   oam:
 
@@ -51,3 +103,7 @@ volumes:
     driver: local
   promdata:
     driver: local
+  lokidata:
+    driver: local
+  tempodata:
+    driver: local    
