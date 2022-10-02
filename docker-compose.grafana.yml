@@ -4,8 +4,7 @@ version: '3.7'
 services:
   prometheus:
     image: prom/prometheus:${GRAFANA__PROMETHEUS_VERSION}
-    command: >
-      --enable-feature=remote-write-receiver
+    command: --enable-feature=remote-write-receiver
     restart: unless-stopped
     mem_limit: 512MB
     ports:
@@ -54,7 +53,7 @@ services:
       - oam
     volumes:
       - lokidata:/loki
-      - ./grafana/loki:/etc/loki     
+      - ./grafana/loki:/etc/loki
     healthcheck:
       interval: 5s
       retries: 20
@@ -70,7 +69,7 @@ services:
       - oam
     volumes:
       - tempodata:/tmp/tempo
-      - ./grafana/tempo:/etc/tempo     
+      - ./grafana/tempo:/etc/tempo
     healthcheck:
       interval: 5s
       retries: 20
@@ -82,18 +81,18 @@ services:
     mem_limit: 512MB
     depends_on:
       prometheus:
-        condition: service_healthy    
+        condition: service_healthy
       loki:
-        condition: service_healthy  
+        condition: service_healthy
       tempo:
-        condition: service_healthy  
+        condition: service_healthy
     ports:
       - 4317:4317
     container_name: otelcollector
     networks:
       - oam
     volumes:
-      - ./grafana/otelcol:/etc/otelcol-contrib   
+      - ./grafana/otelcol:/etc/otelcol-contrib
 
 networks:
   oam:
@@ -106,4 +105,4 @@ volumes:
   lokidata:
     driver: local
   tempodata:
-    driver: local    
+    driver: local

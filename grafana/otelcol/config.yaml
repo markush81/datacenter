@@ -8,12 +8,18 @@ processors:
 exporters:
   prometheusremotewrite:
     endpoint: http://prometheus:9090/api/v1/write
+    resource_to_telemetry_conversion:
+      enabled: true
+    target_info:
+      enabled: true
   otlp:
     endpoint: tempo:4317
     tls:
       insecure: true
   loki:
     endpoint: http://loki:3100/loki/api/v1/push
+  logging:
+    loglevel: debug
 
 extensions:
   health_check:
