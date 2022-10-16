@@ -1,17 +1,19 @@
 auth_enabled: false
+search_enabled: true
 
 server:
   http_listen_port: 3100
 
 distributor:
-  receivers:                
+  receivers:
+    zipkin:
     otlp:
       protocols:
         grpc:
 
 ingester:
-  trace_idle_period: 10s    
-  max_block_duration: 5m     
+  trace_idle_period: 10s
+  max_block_duration: 5m
 
 metrics_generator_enabled: true
 
@@ -23,18 +25,18 @@ metrics_generator:
 
 compactor:
   compaction:
-    compaction_window: 1h     
+    compaction_window: 1h
     max_compaction_objects: 1000000
     block_retention: 1h
     compacted_block_retention: 10m
 
 storage:
   trace:
-    backend: local                 
+    backend: local
     wal:
-      path: /tmp/tempo/wal         
+      path: /tmp/tempo/wal
     local:
       path: /tmp/tempo/blocks
     pool:
-      max_workers: 100   
+      max_workers: 100
       queue_depth: 10000

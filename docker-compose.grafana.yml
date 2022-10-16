@@ -33,6 +33,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA__INITIAL_PASSWORD}
+      GF_FEATURE_TOGGLES_ENABLE: tempoSearch tempoBackendSearch
     networks:
       - oam
     volumes:
@@ -64,6 +65,8 @@ services:
     command: -config.file=/etc/tempo/config.yml
     restart: unless-stopped
     mem_limit: 512MB
+    ports:
+      - 9411:9411
     container_name: tempo
     networks:
       - oam

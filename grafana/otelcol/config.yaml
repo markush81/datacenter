@@ -12,7 +12,7 @@ exporters:
       enabled: true
     target_info:
       enabled: true
-  otlp:
+  otlp/tempo:
     endpoint: tempo:4317
     tls:
       insecure: true
@@ -30,7 +30,7 @@ service:
     traces:
       receivers: [otlp]
       processors: []
-      exporters: [otlp]
+      exporters: [otlp/tempo]
     metrics:
       receivers: [otlp]
       processors: []
