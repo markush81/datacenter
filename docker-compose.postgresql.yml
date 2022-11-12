@@ -19,7 +19,7 @@ services:
     healthcheck:
       interval: 10s
       retries: 20
-      test: pg_isready
+      test: pg_isready -U postgres -q
 
 networks:
   backend:
