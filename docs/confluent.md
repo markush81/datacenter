@@ -2,7 +2,6 @@
 
 Confluent consists of
 
-- Zookeeper
 - Confluent Server
 - Confluent Controlcenter
 - Schema Registry
