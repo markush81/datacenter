@@ -42,7 +42,7 @@ services:
     healthcheck:
       interval: 5s
       retries: 20
-      test: curl -u admin:$$GRAFANA__PROMETHEUS_VERSION --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:3000/api/heatlh
+      test: wget -O- -q --server-response http://admin:$$GRAFANA__PROMETHEUS_VERSION@localhost:3000/api/health 2>&1 | awk '/HTTP\//{ print $2 }' | grep 200
 
   loki:
     image: grafana/loki:${GRAFANA__LOKI_VERSION}
