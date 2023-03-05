@@ -1,0 +1,93 @@
+---
+version: '3.8'
+
+services:
+
+  opensearch:
+    image: opensearchproject/opensearch:${OPENSEARCH__STACK_VERSION}
+    restart: unless-stopped
+    mem_limit: 5G
+    environment:
+      - cluster.name=opensearch-cluster
+      - bootstrap.memory_lock=true
+      - discovery.type=single-node
+      - node.name=opensearch
+      - OPENSEARCH_JAVA_OPTS=-Xms4g -Xmx4g
+      - OPENSEARCH_PASSWORD=$OPENSEARCH__INITIAL_PASSWORD
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearchdata:/usr/share/opensearch/data
+    ports:
+      - 9201:9200
+    container_name: opensearch
+    networks:
+      - oam
+    healthcheck:
+      test: curl -k -u admin:$$OPENSEARCH_PASSWORD -s https://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+      interval: 20s
+      retries: 10
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:${OPENSEARCH__STACK_VERSION}
+    restart: unless-stopped
+    mem_limit: 1G
+    ports:
+      - 5602:5601
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    environment:
+      OPENSEARCH_HOSTS: '["https://opensearch:9200"]'
+      OPENSEARCH_DASHBOARDS_PASSWORD: $OPENSEARCH__INITIAL_PASSWORD
+    volumes:
+      - opensearchdashboardsdata:/usr/share/opensearch-dashboards/data
+    container_name: opensearch-dashboards
+    networks:
+      - oam
+    healthcheck:
+      test: curl -u admin:$$OPENSEARCH_DASHBOARDS_PASSWORD --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
+      interval: 20s
+      retries: 10
+
+  otelcollector:
+    image: otel/opentelemetry-collector-contrib:${OTEL__COLLECTOR_VERSION}
+    restart: unless-stopped
+    mem_limit: 128MB
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    ports:
+      - 4318:4317
+    container_name: opensearch-otelcollector
+    networks:
+      - oam
+    volumes:
+      - ./opensearch/otelcol:/etc/otelcol-contrib
+
+  data-prepper:
+    image: opensearchproject/data-prepper:${OPENSEARCH__DATAPREPPER_VERSION}
+    restart: unless-stopped
+    mem_limit: 512MB
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    volumes:
+      - ./opensearch/data-prepper/pipelines.yml:/usr/share/data-prepper/pipelines/pipelines.yaml
+    container_name: data-prepper
+    networks:
+      - oam
+
+networks:
+  oam:
+
+volumes:
+  opensearchdata:
+    driver: local
+  opensearchdashboardsdata:
+    driver: local
