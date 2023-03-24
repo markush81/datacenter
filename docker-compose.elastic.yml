@@ -7,7 +7,7 @@ services:
     command: >
       bash -c '
         echo "Waiting for Elasticsearch availability";
-        until curl -s -u elastic:${ELASTIC__INITIAL_PASSWORD} http://elasticsearch:9200/_cluster/health | grep -vq '"status":"red"'; do sleep 30; done;
+        until curl -s -u elastic:${ELASTIC__INITIAL_PASSWORD} http://elasticsearch:9200/_cluster/health | grep -vq '"'"'"status":"red"'"'"'; do sleep 30; done;
         echo "Setting kibana_system password";
         until curl -s -X POST -u elastic:${ELASTIC__INITIAL_PASSWORD} -H "Content-Type: application/json" http://elasticsearch:9200/_security/user/kibana_system/_password -d "{\"password\":\"${ELASTIC__INITIAL_PASSWORD}\"}" | grep -q "^{}"; do sleep 10; done;
         echo "All done!";
@@ -18,7 +18,7 @@ services:
     networks:
       - oam
 
-  fleet-server-apm:
+  fleet-server:
     image: docker.elastic.co/beats/elastic-agent:${ELASTIC__STACK_VERSION}
     depends_on:
       elasticsearch:
@@ -26,29 +26,71 @@ services:
       kibana:
         condition: service_healthy
     restart: unless-stopped
-    mem_limit: 512M
+    labels:
+      co.elastic.logs/enabled: false
+      co.elastic.metrics/enabled: false
+    mem_limit: 256M
     environment:
       FLEET_SERVER_ENABLE: "1"
-      FLEET_SERVER_POLICY_ID: fleet-server-apm
+      FLEET_SERVER_POLICY_ID: fleet-server
       FLEET_SERVER_ELASTICSEARCH_HOST: http://elasticsearch:9200
       FLEET_SERVER_ELASTICSEARCH_USERNAME: elastic
       FLEET_SERVER_ELASTICSEARCH_PASSWORD: $ELASTIC__INITIAL_PASSWORD
-      FLEET_SERVER_INSECURE_HTTP: "true"
-      FLEET_URL: https://fleet-server:8220
-      KIBANA_FLEET_SETUP: "true"
+      FLEET_SERVER_INSECURE_HTTP: true
+      FLEET_SERVER_HOST: "0.0.0.0"
+      KIBANA_FLEET_SETUP: true
       KIBANA_HOST: http://kibana:5601
       KIBANA_USERNAME: elastic
       KIBANA_PASSWORD: $ELASTIC__INITIAL_PASSWORD
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     container_name: fleet-server
+    hostname: fleet-server
+    networks:
+      - oam
+    healthcheck:
+      interval: 10s
+      retries: 12
+      test: curl -s http://localhost:8220/api/status | grep -q '"status":"HEALTHY"'
+
+  apm:
+    image: docker.elastic.co/beats/elastic-agent:${ELASTIC__STACK_VERSION}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+      fleet-server:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 256M
+    labels:
+      co.elastic.logs/enabled: false
+      co.elastic.metrics/enabled: false
+    environment:
+      FLEET_ENROLL: 1
+      FLEET_URL: http://fleet-server:8220
+      FLEET_INSECURE: true
+      FLEET_TOKEN_POLICY_NAME: apm
+      FLEET_TOKEN_NAME: Default
+      KIBANA_FLEET_HOST: http://kibana:5601
+      KIBANA_FLEET_USERNAME: elastic
+      KIBANA_FLEET_PASSWORD: $ELASTIC__INITIAL_PASSWORD
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: $ELASTIC__INITIAL_PASSWORD
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    container_name: apm
+    hostname: apm
     ports:
-      - 8220:8220
       - 8200:8200
     networks:
       - oam
     healthcheck:
       interval: 10s
       retries: 12
-      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8220/api/status && curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:8200
+      test: curl -s http://localhost:8200 | grep -q '"publish_ready":\ true'
 
   filebeat:
     image: docker.elastic.co/beats/filebeat:${ELASTIC__STACK_VERSION}
@@ -81,6 +123,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - $ELASTIC__LOG_FILES:/var/log/external:ro
     container_name: filebeat
+    hostname: filebeat
     networks:
       - oam
     healthcheck:
@@ -118,6 +161,7 @@ services:
       - ./elastic/metricbeat/system.yml:/usr/share/metricbeat/modules.d/system.yml
       - /var/run/docker.sock:/var/run/docker.sock:ro
     container_name: metricbeat
+    hostname: metricbeat
     networks:
       - oam
     healthcheck:
@@ -158,6 +202,7 @@ services:
     ports:
       - 9200:9200
     container_name: elasticsearch
+    hostname: elasticsearch
     networks:
       - oam
     healthcheck:
@@ -187,7 +232,7 @@ services:
       XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: $ELASTIC__ENCRYPTION_KEY
       XPACK_SECURITY_ENCRYPTIONKEY: $ELASTIC__ENCRYPTION_KEY
       XPACK_REPORTING_ENCRYPTIONKEY: $ELASTIC__ENCRYPTION_KEY
-      XPACK_FLEET_AGENTS_FLEET_SERVER_HOSTS: '["https://fleet-server:8220"]'
+      XPACK_FLEET_AGENTS_FLEET_SERVER_HOSTS: '["http://fleet-server:8220"]'
       XPACK_FLEET_AGENTS_ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
     volumes:
       - ./elastic/kibana.yml:/usr/share/kibana/config/kibana.yml
@@ -195,6 +240,7 @@ services:
     ports:
       - 5601:5601
     container_name: kibana
+    hostname: kibana
     networks:
       - oam
     healthcheck:

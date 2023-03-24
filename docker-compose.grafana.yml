@@ -10,6 +10,7 @@ services:
     ports:
       - 9090:9090
     container_name: prometheus
+    hostname: prometheus
     environment: []
     networks:
       - oam
@@ -30,6 +31,7 @@ services:
     ports:
       - 3000:3000
     container_name: grafana
+    hostname: grafana
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA__INITIAL_PASSWORD}
@@ -50,6 +52,7 @@ services:
     restart: unless-stopped
     mem_limit: 512MB
     container_name: loki
+    hostname: loki
     networks:
       - oam
     volumes:
@@ -68,6 +71,7 @@ services:
     ports:
       - 9411:9411
     container_name: tempo
+    hostname: tempo
     networks:
       - oam
     volumes:
@@ -92,6 +96,7 @@ services:
     ports:
       - 4317:4317
     container_name: grafana-otelcollector
+    hostname: grafana-otelcollector
     networks:
       - oam
     volumes:

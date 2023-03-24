@@ -6,8 +6,8 @@ xpack.fleet.packages:
   - name: apm
     version: latest
 xpack.fleet.agentPolicies:
-  - name: Fleet Server (APM)
-    id: fleet-server-apm
+  - name: fleet-server
+    id: fleet-server
     is_default_fleet_server: true
     is_managed: false
     namespace: default
@@ -16,6 +16,11 @@ xpack.fleet.agentPolicies:
         id: fleet-server
         package:
           name: fleet_server
+  - name: apm
+    id: apm
+    is_managed: false
+    namespace: local
+    package_policies:
       - name: apm_integration
         id: apm-server
         package:
@@ -25,5 +30,6 @@ xpack.fleet.agentPolicies:
             enabled: true
             vars:
               - name: host
-                value: "0.0.0.0:8200"
+                value: "0.0.0.0"
+
 telemetry.optIn: false

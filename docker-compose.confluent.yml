@@ -48,6 +48,7 @@ services:
     volumes:
       - confluentdata:/var/lib/kafka/data
     container_name: broker
+    hostname: broker
     networks:
       - backend
     healthcheck:
@@ -74,6 +75,7 @@ services:
     ports:
       - 9021:9021
     container_name: controlcenter
+    hostname: controlcenter
     networks:
       - oam
       - backend
@@ -97,6 +99,7 @@ services:
     ports:
       - 8081:8081
     container_name: schema-registry
+    hostname: schema-registry
     networks:
       - backend
     healthcheck:

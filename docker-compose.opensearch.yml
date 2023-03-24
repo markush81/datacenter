@@ -26,6 +26,7 @@ services:
     ports:
       - 9201:9200
     container_name: opensearch
+    hostname: opensearch
     networks:
       - oam
     healthcheck:
@@ -48,6 +49,7 @@ services:
     volumes:
       - opensearchdashboardsdata:/usr/share/opensearch-dashboards/data
     container_name: opensearch-dashboards
+    hostname: opensearch-dashboards
     networks:
       - oam
     healthcheck:
@@ -65,6 +67,7 @@ services:
     ports:
       - 4318:4317
     container_name: opensearch-otelcollector
+    hostname: opensearch-otelcollector
     networks:
       - oam
     volumes:
@@ -80,6 +83,7 @@ services:
     volumes:
       - ./opensearch/data-prepper/pipelines.yml:/usr/share/data-prepper/pipelines/pipelines.yaml
     container_name: data-prepper
+    hostname: data-prepper
     networks:
       - oam
 

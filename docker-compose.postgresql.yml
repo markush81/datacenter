@@ -13,6 +13,7 @@ services:
     ports:
       - 5432:5432
     container_name: postgresql
+    hostname: postgresql
     networks:
       - oam
       - backend
