@@ -5,6 +5,8 @@ xpack.fleet.packages:
     version: latest
   - name: apm
     version: latest
+  - name: elastic_agent
+    version: latest
 xpack.fleet.agentPolicies:
   - name: fleet-server
     id: fleet-server
@@ -16,11 +18,19 @@ xpack.fleet.agentPolicies:
         id: fleet-server
         package:
           name: fleet_server
+      - name: elastic_agent
+        id: elastic-agent
+        package:
+          name: elastic_agent
   - name: apm
     id: apm
     is_managed: false
     namespace: local
     package_policies:
+      - name: elastic_agent
+        id: elastic-agent
+        package:
+          name: elastic_agent
       - name: apm_integration
         id: apm-server
         package:
@@ -31,5 +41,11 @@ xpack.fleet.agentPolicies:
             vars:
               - name: host
                 value: "0.0.0.0"
+              - name: port
+                value: 8200
+              - name: url
+                value: "http://localhost:8200"
 
-telemetry.optIn: false
+telemetry:
+  optIn: false
+  allowChangingOptInStatus: false

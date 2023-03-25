@@ -22,14 +22,6 @@ Default password is `secret`.
 - [Elastic Agent (APM Integration) - http://localhost:8200](http://localhost:8200)
 - [Elasticsearch - http://localhost:9200](http://localhost:9200)
 
-
-## Logs
-
-Want to pass your own logs?
-
-Set `ELASTIC__LOG_FILES` in `.env` to your log file location (`*.log`) or adapt `elastic/filebeat.yml` to your needs.
-
-
 ## Screenshots
 
 ![Elastic Stack Monitoring](images/elastic_stack_monitoring.png)

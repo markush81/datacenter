@@ -7,27 +7,3 @@ filebeat.autodiscover:
   providers:
     - type: docker
       hints.enabled: true
-
-filebeat.inputs:
-  - type: filestream
-    paths:
-      - /var/log/external/*.log
-    fields:
-      external.log: true
-    parsers:
-      - ndjson:
-          keys_under_root: true
-          overwrite_keys: true
-          add_error_key: true
-          expand_keys: true
-
-processors:
-- add_host_metadata: ~
-- add_cloud_metadata: ~
-- add_docker_metadata: ~
-- add_kubernetes_metadata: ~
-
-output.elasticsearch:
-  hosts: '${ELASTICSEARCH_HOSTS:elasticsearch:9200}'
-  username: '${ELASTICSEARCH_USERNAME:}'
-  password: '${ELASTICSEARCH_PASSWORD:}'

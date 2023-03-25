@@ -4,12 +4,15 @@ version: '3.8'
 services:
   setup:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC__STACK_VERSION}
+    user: root #to store cluster_uuid
     command: >
       bash -c '
         echo "Waiting for Elasticsearch availability";
         until curl -s -u elastic:${ELASTIC__INITIAL_PASSWORD} http://elasticsearch:9200/_cluster/health | grep -vq '"'"'"status":"red"'"'"'; do sleep 30; done;
         echo "Setting kibana_system password";
         until curl -s -X POST -u elastic:${ELASTIC__INITIAL_PASSWORD} -H "Content-Type: application/json" http://elasticsearch:9200/_security/user/kibana_system/_password -d "{\"password\":\"${ELASTIC__INITIAL_PASSWORD}\"}" | grep -q "^{}"; do sleep 10; done;
+        echo "Storing cluster_uuid";
+        until curl -s -u elastic:${ELASTIC__INITIAL_PASSWORD} http://elasticsearch:9200/ | grep cluster_uuid | sed -e '"'"'s/\"cluster_uuid\" : \"\(.*\)\".*/\1/'"'"' | awk '"'"'{$1=$1};1'"'"' > /usr/share/setup/cluster_uuid; do sleep 10; done;
         echo "All done!";
       '
     container_name: elastic_setup
@@ -20,16 +23,17 @@ services:
 
   fleet-server:
     image: docker.elastic.co/beats/elastic-agent:${ELASTIC__STACK_VERSION}
+    restart: unless-stopped
+    mem_limit: 256M
+    labels:
+      co.elastic.logs/enabled: false
+      co.elastic.metrics/enabled: false
     depends_on:
       elasticsearch:
         condition: service_healthy
       kibana:
         condition: service_healthy
-    restart: unless-stopped
-    labels:
-      co.elastic.logs/enabled: false
-      co.elastic.metrics/enabled: false
-    mem_limit: 256M
+    user: root #/var/run/docker.sock
     environment:
       FLEET_SERVER_ENABLE: "1"
       FLEET_SERVER_POLICY_ID: fleet-server
@@ -55,6 +59,11 @@ services:
 
   apm:
     image: docker.elastic.co/beats/elastic-agent:${ELASTIC__STACK_VERSION}
+    restart: unless-stopped
+    mem_limit: 256M
+    labels:
+      co.elastic.logs/enabled: false
+      co.elastic.metrics/enabled: false
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -62,11 +71,7 @@ services:
         condition: service_healthy
       fleet-server:
         condition: service_healthy
-    restart: unless-stopped
-    mem_limit: 256M
-    labels:
-      co.elastic.logs/enabled: false
-      co.elastic.metrics/enabled: false
+    user: root #/var/run/docker.sock
     environment:
       FLEET_ENROLL: 1
       FLEET_URL: http://fleet-server:8220
@@ -104,24 +109,29 @@ services:
         condition: service_healthy
       kibana:
         condition: service_healthy
-    user: root
+    user: root #/var/run/docker.sock
+    entrypoint: []
     command: >
-      filebeat -e
-        -E setup.kibana.enabled=true
-        -E setup.kibana.host=http://kibana:5601
-        -E setup.template.enabled=true
-        -E setup.template.settings.index.number_of_replicas=0
-        -E http.enabled=true
-        -E http.host=0.0.0.0
-        -E monitoring.enabled=false
-        -E output.elasticsearch.username=elastic
-        -E output.elasticsearch.password=$ELASTIC__INITIAL_PASSWORD
-        -E output.elasticsearch.hosts=["http://elasticsearch:9200"]
+      bash -c '
+        filebeat -e \
+          -E setup.kibana.enabled=true \
+          -E setup.kibana.host=http://kibana:5601 \
+          -E setup.template.enabled=true \
+          -E setup.template.settings.index.number_of_replicas=0 \
+          -E http.enabled=true \
+          -E http.host=0.0.0.0 \
+          -E http.port=5066 \
+          -E monitoring.enabled=false \
+          -E output.elasticsearch.username=elastic \
+          -E output.elasticsearch.password=$ELASTIC__INITIAL_PASSWORD \
+          -E output.elasticsearch.hosts=["http://elasticsearch:9200"] \
+          -E monitoring.cluster_uuid=$(cat /usr/share/setup/cluster_uuid) \
+      '
     volumes:
       - ./elastic/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - $ELASTIC__LOG_FILES:/var/log/external:ro
+      - setup:/usr/share/setup
     container_name: filebeat
     hostname: filebeat
     networks:
@@ -143,23 +153,29 @@ services:
         condition: service_healthy
       kibana:
         condition: service_healthy
-    user: root
+    user: root #/var/run/docker.sock
+    entrypoint: []
     command: >
-      metricbeat -e
-        -E setup.kibana.enabled=true
-        -E setup.kibana.host=http://kibana:5601
-        -E setup.template.enabled=true
-        -E setup.template.settings.index.number_of_replicas=0
-        -E http.enabled=true
-        -E http.host=0.0.0.0
-        -E monitoring.enabled=false
-        -E output.elasticsearch.username=elastic
-        -E output.elasticsearch.password=$ELASTIC__INITIAL_PASSWORD
-        -E output.elasticsearch.hosts=["http://elasticsearch:9200"]
+      bash -c '
+        metricbeat -e \
+          -E setup.kibana.enabled=true \
+          -E setup.kibana.host=http://kibana:5601 \
+          -E setup.template.enabled=true \
+          -E setup.template.settings.index.number_of_replicas=0 \
+          -E http.enabled=true \
+          -E http.host=0.0.0.0 \
+          -E http.port=5066 \
+          -E monitoring.enabled=false \
+          -E output.elasticsearch.username=elastic \
+          -E output.elasticsearch.password=$ELASTIC__INITIAL_PASSWORD \
+          -E output.elasticsearch.hosts=["http://elasticsearch:9200"] \
+          -E monitoring.cluster_uuid=$(cat /usr/share/setup/cluster_uuid) \
+      '
     volumes:
       - ./elastic/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
       - ./elastic/metricbeat/system.yml:/usr/share/metricbeat/modules.d/system.yml
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - setup:/usr/share/setup
     container_name: metricbeat
     hostname: metricbeat
     networks:
@@ -213,7 +229,7 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:${ELASTIC__STACK_VERSION}
     restart: unless-stopped
-    mem_limit: 1G
+    mem_limit: 2G
     labels:
       co.elastic.logs/enabled: false
       co.elastic.logs/module: kibana
@@ -227,7 +243,6 @@ services:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
       ELASTICSEARCH_USERNAME: kibana_system
       ELASTICSEARCH_PASSWORD: $ELASTIC__INITIAL_PASSWORD
-      MONITORING_KIBANA_COLLECTION_ENABLED: false
       XPACK_APM_AUTOCREATEAPMINDEXPATTERN: true
       XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: $ELASTIC__ENCRYPTION_KEY
       XPACK_SECURITY_ENCRYPTIONKEY: $ELASTIC__ENCRYPTION_KEY
