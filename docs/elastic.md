@@ -6,7 +6,7 @@ Elastic stack consists of
 - Metricbeat for Stack Monitoring
 - Filebeat
 - Kibana
-- Elastic Agent (Fleet Server and APM Integration)
+- Elastic Agent with several integrations
 
 References: [Elastic Stack Documentation](https://www.elastic.co/guide/index.html)
 
@@ -19,7 +19,7 @@ Default password is `secret`.
 ## Connections
 
 - [Kibana - http://localhost:5601](http://localhost:5601)
-- [Elastic Agent (APM Integration) - http://localhost:8200](http://localhost:8200)
+- [Elastic Agent (apm) - http://localhost:8200](http://localhost:8200)
 - [Elasticsearch - http://localhost:9200](http://localhost:9200)
 
 ## Screenshots
