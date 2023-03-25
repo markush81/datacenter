@@ -205,13 +205,14 @@ services:
       retries: 10
 
   elasticsearch_setup:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC__STACK_VERSION}
+    image: alpine:${ALPINE_VERSION}
     user: root #to store cluster_uuid
     depends_on:
       elasticsearch:
         condition: service_healthy
     command: >
-      bash -c '
+      sh -c '
+        apk add curl;
         echo "Waiting for Elasticsearch availability";
         until curl -s -u elastic:${ELASTIC__INITIAL_PASSWORD} http://elasticsearch:9200/_cluster/health | grep -vq '"'"'"status":"red"'"'"'; do sleep 30; done;
         echo "Setting kibana_system password";
@@ -266,7 +267,7 @@ services:
       test: curl -u kibana_system:$$ELASTICSEARCH_PASSWORD -f -s -o /dev/null http://localhost:5601/api/status
 
   kibana_setup:
-    image: alpine:3.17.2
+    image: alpine:${ALPINE_VERSION}
     depends_on:
       kibana:
         condition: service_healthy
