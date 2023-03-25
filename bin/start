@@ -20,13 +20,18 @@ k8s() {
   if [[ "${CLUSTER_EXISTS}" != "${KIND_CLUSTERNAME}" ]]; then
     kind create cluster --config=k8s/kubernetes.yml --name ${KIND_CLUSTERNAME}
     info "Apply ingress-nginx"
-    # kubectl --context "kind-${KIND_CLUSTERNAME}" --namespace ingress-nginx delete job ingress-nginx-admission-create || true
-    # kubectl --context "kind-${KIND_CLUSTERNAME}" --namespace ingress-nginx delete job ingress-nginx-admission-patch || true
-    kubectl --context "kind-${KIND_CLUSTERNAME}" apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.1/deploy/static/provider/kind/deploy.yaml
+    kubectl --context "kind-${KIND_CLUSTERNAME}" --namespace ingress-nginx delete job ingress-nginx-admission-create || true
+    kubectl --context "kind-${KIND_CLUSTERNAME}" --namespace ingress-nginx delete job ingress-nginx-admission-patch || true
+    kubectl --context "kind-${KIND_CLUSTERNAME}" apply -f k8s/ingress-nginx.yml
+    kubectl --context "kind-${KIND_CLUSTERNAME}" apply -f k8s/kube-state-metrics.yml
+    if [[ $ELASTIC_ENABLED -eq 1 ]]; then
+      kubectl --context "kind-${KIND_CLUSTERNAME}" apply -f k8s/elastic-agent.yml
+    fi
   fi
 }
 
 declare -a COMPOSE_FILES
+declare -i ELASTIC_ENABLED=0
 declare -i KUBERNETES_ENABLED=0
 
 if [[ $# -gt 0 ]]; then
@@ -38,6 +43,9 @@ if [[ $# -gt 0 ]]; then
         if [[ "$APP" == "k8s" ]]; then
           KUBERNETES_ENABLED=1
         else
+          if [[ "$APP" == "elastic" ]]; then
+            ELASTIC_ENABLED=1
+          fi
           FILE="docker-compose.${APP}.yml"
           if [[ -f "$FILE" ]]; then
             COMPOSE_FILES+=(-f "${FILE}")

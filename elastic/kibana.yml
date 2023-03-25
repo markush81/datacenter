@@ -7,32 +7,38 @@ xpack.fleet.packages:
     version: latest
   - name: elastic_agent
     version: latest
+  - name: kubernetes
+    version: latest
+  - name: cloud_security_posture
+    version: latest
+  - name: ti_util
+    version: latest
+  - name: endpoint
+    version: latest
 xpack.fleet.agentPolicies:
   - name: fleet-server
     id: fleet-server
     is_default_fleet_server: true
     is_managed: false
-    namespace: default
     package_policies:
+      - name: elastic_agent_fleet
+        id: elastic-agent-fleet
+        package:
+          name: elastic_agent
       - name: fleet_server
         id: fleet-server
         package:
           name: fleet_server
-      - name: elastic_agent
-        id: elastic-agent
-        package:
-          name: elastic_agent
   - name: apm
     id: apm
     is_managed: false
-    namespace: local
     package_policies:
-      - name: elastic_agent
-        id: elastic-agent
+      - name: elastic_agent_apm
+        id: elastic-agent-apm
         package:
           name: elastic_agent
-      - name: apm_integration
-        id: apm-server
+      - name: apm
+        id: apm
         package:
           name: apm
         inputs:
@@ -45,6 +51,48 @@ xpack.fleet.agentPolicies:
                 value: 8200
               - name: url
                 value: "http://localhost:8200"
+  - name: kubernetes
+    id: kubernetes
+    is_default_fleet_server: true
+    is_managed: false
+    package_policies:
+      - name: elastic_agent_k8s
+        id: elastic-agent-k8s
+        package:
+          name: elastic_agent
+      - name: kubernetes
+        id: kubernetes
+        package:
+          name: kubernetes
+        inputs:
+          - type: filestream
+            enabled: true
+            streams:
+              - data_stream:
+                  dataset: kubernetes.container_logs
+                enabled: true
+                vars:
+                  - name: additionalParsersConfig
+                    value: |
+                      - ndjson:
+                          target: json
+                          ignore_decoding_error: true
+                          keys_under_root: true
+                          add_error_key: true
+                          message_key: message
+      - name: cloud_security_posture
+        id: cloud-security-posture
+        package:
+          name: cloud_security_posture
+      - name: ti_util
+        id: ti-util
+        package:
+          name: ti_util
+# Not possible, to configure it here
+#      - name: endpoint
+#        id: endpoint
+#        package:
+#          name: endpoint
 
 telemetry:
   optIn: false
