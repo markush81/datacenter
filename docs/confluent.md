@@ -13,7 +13,6 @@ References: [Confluent Documentation](https://docs.confluent.io/platform/current
 - [Controlcenter - http://localhost:9021](http://localhost:9021)
 - [Schema Registry - http://localhost:8081](http://localhost:8081)
 - Broker: localhost:9092
-- Zookeeper: localhost:2181
 
 
 ## Screenshots
