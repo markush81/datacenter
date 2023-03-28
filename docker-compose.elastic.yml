@@ -14,6 +14,8 @@ services:
         condition: service_healthy
       kibana:
         condition: service_healthy
+      kibana_setup:
+        condition: service_completed_successfully
     user: root #/var/run/docker.sock
     environment:
       FLEET_SERVER_ENABLE: "1"
