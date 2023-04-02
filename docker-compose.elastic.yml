@@ -282,6 +282,10 @@ services:
         until curl -u kibana_system:$$ELASTICSEARCH_PASSWORD -f -s -o /dev/null http://kibana:5601/api/status; do sleep 30; done;
         echo "Update default space";
         until curl -s -X PUT -u elastic:${ELASTIC__INITIAL_PASSWORD} -H "Content-Type: application/json" -H "kbn-xsrf: true" http://kibana:5601/api/spaces/space/default -d @/usr/share/setup/spaces/default.json | grep -q "default"; do sleep 10; done;
+
+        echo "Update package policies";
+        until curl -s -X POST -u elastic:${ELASTIC__INITIAL_PASSWORD} -H "Content-Type: application/json" -H "kbn-xsrf: true" http://kibana:5601/api/fleet/package_policies -d @/usr/share/setup/package_policies/cloud-security-posture.json | grep -q "kspm\|already"; do sleep 10; done;
+
         echo "All done!";
       '
     container_name: kibana_setup

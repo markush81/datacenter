@@ -57,6 +57,7 @@ if [[ $# -gt 0 ]]; then
       done
       ;;
     a)
+      ELASTIC_ENABLED=1
       FILES=($(ls docker-compose*yml))
       KUBERNETES_ENABLED=1
       for file in "${FILES[@]}"; do

@@ -1,0 +1,23 @@
+{
+    "package": {
+        "name": "cloud_security_posture",
+        "version": "1.2.13"
+    },
+    "name": "cloud_security_posture",
+    "namespace": "default",
+    "policy_id": "kubernetes",
+    "inputs": [
+        {
+            "type": "cloudbeat/cis_k8s",
+            "enabled": true
+        }
+    ],
+    "vars": {
+        "posture": {
+            "value": "kspm"
+        },
+        "deployment": {
+            "value": "cloudbeat/cis_k8s"
+        }
+    }
+}

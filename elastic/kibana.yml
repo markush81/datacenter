@@ -9,8 +9,6 @@ xpack.fleet.packages:
     version: latest
   - name: kubernetes
     version: latest
-  - name: cloud_security_posture
-    version: latest
   - name: ti_util
     version: latest
   - name: endpoint
@@ -80,10 +78,6 @@ xpack.fleet.agentPolicies:
                           keys_under_root: true
                           add_error_key: true
                           message_key: message
-      - name: cloud_security_posture
-        id: cloud-security-posture
-        package:
-          name: cloud_security_posture
       - name: ti_util
         id: ti-util
         package:
