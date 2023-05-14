@@ -4,9 +4,10 @@ set -u
 set -o pipefail
 IFS=$'\n\t'
 
+# shellcheck source=/dev/null
 . "$(dirname "$0")/common.sh"
 
-function usage() {
+usage() {
   echo "$(basename "$0") [-h] [-w] [-v]"
   echo -e "  -w\t\tlist of comma separated apps"
   echo -e "  -v\t\tremove volumes"
@@ -25,7 +26,8 @@ if [[ $# -gt 0 ]]; then
   while getopts ":w:hv" opt 2>/dev/null; do
     case ${opt} in
     w)
-      APPS=($(echo "$OPTARG" | tr "," "\n"))
+      APPS=()
+      while IFS='' read -r line; do APPS+=("$line"); done < <(echo "${OPTARG}" | tr "," "\n")
       for APP in "${APPS[@]}"; do
         if [[ "$APP" == "k8s" ]]; then
           KUBERNETES_ENABLED=1
@@ -58,7 +60,8 @@ if [[ $# -gt 0 ]]; then
 fi
 
 if [ "${COMPOSE_FILES[*]:-}" == '' ]; then
-  FILES=($(ls docker-compose*yml))
+  FILES=()
+  while IFS='' read -r line; do FILES+=("$line"); done < <(ls docker-compose*yml)
   for file in "${FILES[@]}"; do
     COMPOSE_FILES+=(-f "${file}")
   done
@@ -73,4 +76,4 @@ fi
 
 ensure_commands docker-compose
 
-docker-compose "${COMPOSE_FILES[@]}" down ${OPTIONS[@]:-}
+docker-compose "${COMPOSE_FILES[@]}" down "${OPTIONS[@]:-}"

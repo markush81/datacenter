@@ -4,6 +4,7 @@ set -u
 set -o pipefail
 IFS=$'\n\t'
 
+# shellcheck source=/dev/null
 . "$(dirname "$0")/common.sh"
 
 function usage() {
@@ -38,7 +39,8 @@ if [[ $# -gt 0 ]]; then
   while getopts ":aw:h" opt 2>/dev/null; do
     case ${opt} in
     w)
-      APPS=($(echo "${OPTARG}" | tr "," "\n"))
+      APPS=()
+      while IFS='' read -r line; do APPS+=("$line"); done < <(echo "${OPTARG}" | tr "," "\n")
       for APP in "${APPS[@]}"; do
         if [[ "$APP" == "k8s" ]]; then
           KUBERNETES_ENABLED=1
@@ -58,7 +60,8 @@ if [[ $# -gt 0 ]]; then
       ;;
     a)
       ELASTIC_ENABLED=1
-      FILES=($(ls docker-compose*yml))
+      FILES=()
+      while IFS='' read -r line; do FILES+=("$line"); done < <(ls docker-compose*yml)
       KUBERNETES_ENABLED=1
       for file in "${FILES[@]}"; do
         COMPOSE_FILES+=(-f "${file}")
@@ -78,7 +81,7 @@ if [[ $# -gt 0 ]]; then
     esac
   done
 
- if [ "${COMPOSE_FILES[*]:-}" != '' ]; then
+  if [ "${COMPOSE_FILES[*]:-}" != '' ]; then
     ensure_commands docker-compose
 
     docker-compose "${COMPOSE_FILES[@]}" up -d
@@ -88,13 +91,16 @@ if [[ $# -gt 0 ]]; then
 
     k8s
 
-    NETWORKS=($(docker network ls -f name=datacenter --format='{{.Name}}'))
-    CONTAINERS=($(kind get nodes -q --name $KIND_CLUSTERNAME))
+    NETWORKS=()
+    while IFS='' read -r line; do NETWORKS+=("$line"); done < <(docker network ls -f name=datacenter --format='{{.Name}}')
+    CONTAINERS=()
+    while IFS='' read -r line; do CONTAINERS+=("$line"); done < <(kind get nodes -q --name $KIND_CLUSTERNAME)
     if [[ "${NETWORKS[*]:-}" != '' && "${CONTAINERS[*]:-}" != '' ]]; then
       for network in "${NETWORKS[@]}"; do
         for container in "${CONTAINERS[@]}"; do
           info "Connecting $container to $network ..."
-          CONNECTED=($(docker network inspect "$network" --format='{{range .Containers}}{{println .Name}}{{end}}'))
+          CONNECTED=()
+          while IFS='' read -r line; do CONNECTED+=("$line"); done < <(docker network inspect "$network" --format='{{range .Containers}}{{println .Name}}{{end}}')
           if [[ ! "${CONNECTED[*]:-}" =~ (^|[[:space:]])${container}($|[[:space:]]) ]]; then
             docker network connect "$network" "$container"
             success "... done."

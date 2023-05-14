@@ -4,9 +4,10 @@ set -u
 set -o pipefail
 IFS=$'\n\t'
 
+# shellcheck source=/dev/null
 . "$(dirname "$0")/common.sh"
 
-function usage() {
+usage() {
   echo "$(basename "$0") [-h] [-w elastic,confluent,...] [-f]"
   echo -e "  -w\t\tlist of comma separated apps"
   echo -e "  -f\t\tfollow"
@@ -20,7 +21,8 @@ if [[ $# -gt 0 ]]; then
   while getopts ":w:hf" opt 2>/dev/null; do
     case ${opt} in
     w)
-      APPS=($(echo "${OPTARG}" | tr "," "\n"))
+      APPS=()
+      while IFS='' read -r line; do APPS+=("$line"); done < <(echo "${OPTARG}" | tr "," "\n")
       for APP in "${APPS[@]}"; do
         FILE="docker-compose.${APP}.yml"
         if [[ -f "$FILE" ]]; then
@@ -48,7 +50,8 @@ if [[ $# -gt 0 ]]; then
 fi
 
 if [ "${COMPOSE_FILES[*]:-}" == '' ]; then
-  FILES=($(ls docker-compose*yml))
+  FILES=()
+  while IFS='' read -r line; do FILES+=("$line"); done < <(ls docker-compose*yml)
   for file in "${FILES[@]}"; do
     COMPOSE_FILES+=(-f "${file}")
   done
@@ -57,4 +60,4 @@ fi
 SERVICES=$(docker-compose "${COMPOSE_FILES[@]}" config --services | tr '\n' ' ')
 
 info "Show logs of $SERVICES"
-docker-compose "${COMPOSE_FILES[@]}" logs ${OPTIONS[@]:-}
+docker-compose "${COMPOSE_FILES[@]}" logs "${OPTIONS[@]:-}"
