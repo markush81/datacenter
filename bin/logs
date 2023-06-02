@@ -28,7 +28,7 @@ if [[ $# -gt 0 ]]; then
         if [[ -f "$FILE" ]]; then
           COMPOSE_FILES+=(-f "${FILE}")
         else
-          warning "docker-compose file for ${APP} doesn't exist. Ignoring..."
+          warning "compose file for ${APP} doesn't exist. Ignoring..."
         fi
       done
       ;;
@@ -57,7 +57,7 @@ if [ "${COMPOSE_FILES[*]:-}" == '' ]; then
   done
 fi
 
-SERVICES=$(docker-compose "${COMPOSE_FILES[@]}" config --services | tr '\n' ' ')
+SERVICES=$(docker compose "${COMPOSE_FILES[@]}" config --services | tr '\n' ' ')
 
 info "Show logs of $SERVICES"
-docker-compose "${COMPOSE_FILES[@]}" logs "${OPTIONS[@]:-}"
+docker compose "${COMPOSE_FILES[@]}" logs "${OPTIONS[@]:-}"

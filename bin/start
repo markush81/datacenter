@@ -53,7 +53,7 @@ if [[ $# -gt 0 ]]; then
             COMPOSE_FILES+=(-f "${FILE}")
             info "... adding ${FILE}"
           else
-            warning "docker-compose file for ${APP} doesn't exist. Ignoring..."
+            warning "compose file for ${APP} doesn't exist. Ignoring..."
           fi
         fi
       done
@@ -82,9 +82,9 @@ if [[ $# -gt 0 ]]; then
   done
 
   if [ "${COMPOSE_FILES[*]:-}" != '' ]; then
-    ensure_commands docker-compose
+    ensure_commands docker
 
-    docker-compose "${COMPOSE_FILES[@]}" up -d
+    docker compose "${COMPOSE_FILES[@]}" up -d
   fi
   if [[ $KUBERNETES_ENABLED -eq 1 ]]; then
     ensure_commands docker kind kubectl
