@@ -1,9 +1,16 @@
 filebeat.config:
+  reload.enabled: true
+  reload.period: 10s
   modules:
     path: ${path.config}/modules.d/*.yml
-    reload.enabled: false
+    reload.enabled: true
+    reload.period: 10s
 
 filebeat.autodiscover:
   providers:
     - type: docker
       hints.enabled: true
+      hints.default_config:
+        type: container
+        paths:
+          - /var/lib/docker/containers/${data.container.id}/*.log

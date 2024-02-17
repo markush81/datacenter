@@ -99,6 +99,7 @@ services:
         filebeat -e \
           -E setup.kibana.enabled=true \
           -E setup.kibana.host=http://kibana:5601 \
+          -E setup.dashboards.enabled=true \
           -E setup.template.enabled=true \
           -E setup.template.settings.index.number_of_replicas=0 \
           -E http.enabled=true \
@@ -143,6 +144,7 @@ services:
         metricbeat -e \
           -E setup.kibana.enabled=true \
           -E setup.kibana.host=http://kibana:5601 \
+          -E setup.dashboards.enabled=true \
           -E setup.template.enabled=true \
           -E setup.template.settings.index.number_of_replicas=0 \
           -E http.enabled=true \
@@ -209,6 +211,9 @@ services:
   elasticsearch_setup:
     image: alpine:${ALPINE_VERSION}
     user: root #to store cluster_uuid
+    labels:
+      co.elastic.logs/enabled: false
+      co.elastic.metrics/enabled: false
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -270,6 +275,9 @@ services:
 
   kibana_setup:
     image: alpine:${ALPINE_VERSION}
+    labels:
+      co.elastic.logs/enabled: false
+      co.elastic.metrics/enabled: false
     depends_on:
       kibana:
         condition: service_healthy
