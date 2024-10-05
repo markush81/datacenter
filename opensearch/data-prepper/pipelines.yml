@@ -28,7 +28,7 @@ raw-pipeline:
         hosts: ["https://opensearch:9200"]
         insecure: true
         username: admin
-        password: admin
+        password: E!UgNGfn58
         index_type: trace-analytics-raw
 
 service-map-pipeline:
@@ -47,7 +47,7 @@ service-map-pipeline:
         hosts: ["https://opensearch:9200"]
         insecure: true
         username: admin
-        password: admin
+        password: E!UgNGfn58
         index_type: trace-analytics-service-map
 
 metricpipeline:
@@ -61,6 +61,6 @@ metricpipeline:
         hosts: [ "https://opensearch:9200" ]
         insecure: true
         username: admin
-        password: admin
+        password: E!UgNGfn58
         index_type: custom
         index: otel-v1-apm-metrics-%{yyyy.MM.dd}

@@ -14,8 +14,8 @@ exporters:
     endpoint: data-prepper:21891
     tls:
       insecure: true
-  logging:
-    loglevel: debug
+  debug:
+    verbosity: detailed
 
 extensions:
   health_check:

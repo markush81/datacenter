@@ -1,6 +1,4 @@
 ---
-version: '3.8'
-
 services:
   fleet-server:
     image: docker.elastic.co/beats/elastic-agent:${ELASTIC__STACK_VERSION}

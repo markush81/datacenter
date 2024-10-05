@@ -1,6 +1,4 @@
 ---
-version: '3.8'
-
 services:
 
   opensearch:
@@ -13,7 +11,7 @@ services:
       - discovery.type=single-node
       - node.name=opensearch
       - OPENSEARCH_JAVA_OPTS=-Xms4g -Xmx4g
-      - OPENSEARCH_PASSWORD=$OPENSEARCH__INITIAL_PASSWORD
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=$OPENSEARCH__INITIAL_PASSWORD
     ulimits:
       memlock:
         soft: -1
@@ -57,7 +55,7 @@ services:
       interval: 20s
       retries: 10
 
-  otelcollector:
+  opensearch-otelcollector:
     image: otel/opentelemetry-collector-contrib:${OTEL__COLLECTOR_VERSION}
     restart: unless-stopped
     mem_limit: 128MB

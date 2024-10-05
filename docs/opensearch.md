@@ -6,7 +6,7 @@ References: [Opensearch Documentation](https://opensearch.org/docs/latest/)
 
 Set password for `admin` superuser in `.env`.
 
-Default password is `admin`.
+Default password is `E!UgNGfn58` (weak passwords do not work anymore).
 
 :warning: In case password is change, adapt `opensearch/data-prepper/pipelines.yml`.
 

@@ -18,8 +18,8 @@ exporters:
       insecure: true
   loki:
     endpoint: http://loki:3100/loki/api/v1/push
-  logging:
-    loglevel: debug
+  debug:
+    verbosity: detailed
 
 extensions:
   health_check:
